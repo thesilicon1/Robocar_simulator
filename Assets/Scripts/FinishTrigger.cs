@@ -7,6 +7,6 @@ public class FinishTrigger : MonoBehaviour
 {
     private void OnTriggerEnter(Collider collision)
     {
-        Debug.Log(collision.name + " - Объект был на финише");
+        Debug.Log(collision.name + " - has finished");
     }
 }
