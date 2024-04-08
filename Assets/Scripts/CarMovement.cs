@@ -2,105 +2,67 @@
 using UnityEngine;
 
 public class CarMovement : MonoBehaviour {
-    public bool w = false;
-    public bool s = false;
-    public bool a = false;
-    public bool d = false;
+    public enum State { Idle, MovingForward, MovingBackward, TurningLeft, TurningRight }
+    public State currentState = State.Idle;
     public float starttime;
-    public WheelCollider CWFR_3;
-    public WheelCollider CWFL_3;
+    public WheelCollider CWFR_3, CWFL_3;
+    public Transform TWFR_3, TWFL_3;
 
-    public Transform TWFR_3;
-    public Transform TWFL_3;
-
-    public void Movement(float lf, float rf, int timedelta) {
-        float v1 = lf;
-        float v2 = rf;
-
-
+    private void UpdateWheelRotation() {
         TWFR_3.Rotate((CWFR_3.rpm * 3) / 60 * 360 * Time.deltaTime, 0.0f, 0.0f);
         TWFL_3.Rotate((CWFL_3.rpm * 3) / 60 * 360 * Time.deltaTime, 0.0f, 0.0f);
+    }
 
-        if (Input.GetKeyDown(KeyCode.W))
-        {
-            s = false;
-            a = false;
-            d = false;
-            w = true;
+    private void ApplyTorque(float torqueFront, float torqueBack) {
+        CWFR_3.motorTorque = torqueFront;
+        CWFL_3.motorTorque = torqueBack;
+    }
+
+    public void Movement(float lf, float rf, int timedelta) {
+        UpdateWheelRotation();
+
+        if (Input.GetKeyDown(KeyCode.W)) {
+            currentState = State.MovingForward;
+            starttime = Time.unscaledTime;
+        } else if (Input.GetKeyDown(KeyCode.S)) {
+            currentState = State.MovingBackward;
+            starttime = Time.unscaledTime;
+        } else if (Input.GetKeyDown(KeyCode.A)) {
+            currentState = State.TurningLeft;
+            starttime = Time.unscaledTime;
+        } else if (Input.GetKeyDown(KeyCode.D)) {
+            currentState = State.TurningRight;
             starttime = Time.unscaledTime;
         }
-        else if (Input.GetKeyDown(KeyCode.S))
-        {
-            w = false;
-            a = false;
-            d = false;
-            s = true;
-            starttime = Time.unscaledTime;
-        }
-        else if (Input.GetKeyDown(KeyCode.A))
-        {
-            w = false;
-            s = false;
-            d = false;
-            a = true;
-            starttime = Time.unscaledTime;
-        }
-        else if (Input.GetKeyDown(KeyCode.D))
-        {
-            w = false;
-            s = false;
-            a = false;
-            d = true;
-            starttime = Time.unscaledTime;
-        }
-        if (Time.unscaledTime - starttime <= timedelta / 1.5 && w == true)
-        {
-            CWFR_3.motorTorque = v2;
-            CWFL_3.motorTorque = v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta / 1.5&& s == true)
-        {
-            CWFR_3.motorTorque = -v2;
-            CWFL_3.motorTorque = -v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta / 1.1 && a == true)
-        {
-            CWFR_3.motorTorque = -v2;
-            CWFL_3.motorTorque = v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta / 1.1 && d == true)
-        {
-            CWFR_3.motorTorque = v2;
-            CWFL_3.motorTorque = -v1;
-        } // -> stopping
-        else if (Time.unscaledTime - starttime <= timedelta && w == true)
-        {
-            CWFR_3.motorTorque = -v2;
-            CWFL_3.motorTorque = -v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta && s == true)
-        {
-            CWFR_3.motorTorque = v2;
-            CWFL_3.motorTorque = v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta && a == true)
-        {
-            CWFR_3.motorTorque = v2;
-            CWFL_3.motorTorque = -v1;
-        }
-        else if (Time.unscaledTime - starttime <= timedelta && d == true)
-        {
-            CWFR_3.motorTorque = -v2;
-            CWFL_3.motorTorque = v1;
-        }
-        else
-        {
-            w = false;
-            s = false;
-            a = false;
-            d = false;
-            CWFR_3.motorTorque = 0f;
-            CWFL_3.motorTorque = 0f;
+
+        switch (currentState) {
+            case State.MovingForward:
+                if (Time.unscaledTime - starttime <= timedelta / 1.5)
+                    ApplyTorque(rf, lf);
+                else
+                    currentState = State.Idle;
+                break;
+            case State.MovingBackward:
+                if (Time.unscaledTime - starttime <= timedelta / 1.5)
+                    ApplyTorque(-rf, -lf);
+                else
+                    currentState = State.Idle;
+                break;
+            case State.TurningLeft:
+                if (Time.unscaledTime - starttime <= timedelta / 1.1)
+                    ApplyTorque(-rf, lf);
+                else
+                    currentState = State.Idle;
+                break;
+            case State.TurningRight:
+                if (Time.unscaledTime - starttime <= timedelta / 1.1)
+                    ApplyTorque(rf, -lf);
+                else
+                    currentState = State.Idle;
+                break;
+            default:
+                ApplyTorque(0f, 0f);
+                break;
         }
     }
 }
